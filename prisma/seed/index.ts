@@ -1,10 +1,11 @@
 // Seeds demo users, tryout content, and sample finished attempts for the leaderboard. Run with `npm run db:seed`.
 // It deletes all tryouts and attempts first, so it's for development and demo setup only.
-// Users are upserted, never deleted.
+// Users are upserted, never deleted. The demo accounts' payments are deleted.
 import { PrismaPg } from "@prisma/adapter-pg";
 import { config } from "dotenv";
 
 import { PrismaClient } from "../../src/generated/prisma/client";
+import { demoAccounts } from "../../src/lib/demo-accounts";
 import type { OptionLabel, SeedSubtest, SeedTryout } from "./structure";
 import { seedSampleAttempts } from "./sample-attempts";
 import { tka1 } from "./tka-1";
@@ -74,7 +75,13 @@ async function main() {
 
   // Attempts block tryout deletion (onDelete: Restrict), so remove them first.
   // Deleting tryouts cascades to subtests, questions and options.
-  await prisma.$transaction([prisma.attempt.deleteMany(), prisma.tryout.deleteMany()]);
+  // The demo accounts' payments go too, so a reset free account doesn't show a paid payment.
+  // Payments of self-registered users are kept.
+  await prisma.$transaction([
+    prisma.attempt.deleteMany(),
+    prisma.tryout.deleteMany(),
+    prisma.payment.deleteMany({ where: { user: { email: { in: demoAccounts.map((account) => account.email) } } } }),
+  ]);
 
   const tryouts = [];
   for (const tryout of [utbk1, utbk2, tka1]) {

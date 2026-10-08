@@ -53,7 +53,7 @@ npm run db:seed                  # demo users, 3 tryouts, and sample leaderboard
 npm run dev                      # http://localhost:3000
 ```
 
-`npm run db:seed` deletes every tryout and attempt before reseeding, including content created in the admin UI. It also resets the demo accounts (passwords and premium status).
+`npm run db:seed` deletes every tryout and attempt before reseeding, including content created in the admin UI. It also resets the demo accounts (passwords, premium status, and payment history).
 
 ### Scripts
 
