@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { SCORE_SCALE, scoreAttempt } from "@/lib/scoring";
 
 const attemptInclude = {
-  tryout: { select: { title: true, slug: true, examType: true } },
+  tryout: { select: { title: true, slug: true, examType: true, accessTier: true, isPublished: true } },
   sections: {
     // Sections must come back in subtest order: the timeline chains them in array order.
     orderBy: { subtest: { order: "asc" } },
@@ -21,6 +21,11 @@ export type AttemptWithSections = Prisma.AttemptGetPayload<{ include: typeof att
 // Filtering by userId as well as id means a participant can never load someone else's attempt.
 export function findAttemptForUser(attemptId: string, userId: string) {
   return prisma.attempt.findFirst({ where: { id: attemptId, userId }, include: attemptInclude });
+}
+
+// Every attempt of one participant, newest first, for the dashboard.
+export function listAttemptsForUser(userId: string) {
+  return prisma.attempt.findMany({ where: { userId }, orderBy: { startedAt: "desc" }, include: attemptInclude });
 }
 
 export function timelineOf(attempt: AttemptWithSections, now: Date): Timeline {
