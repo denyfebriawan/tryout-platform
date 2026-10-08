@@ -52,8 +52,14 @@ async function UserNav() {
         {user.role === "ADMIN" ? "Admin" : "Dashboard"}
       </Link>
       <span className="hidden text-zinc-500 sm:inline">{user.name}</span>
-      {user.isPremium && (
+      {user.isPremium ? (
         <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Premium</span>
+      ) : (
+        user.role === "PARTICIPANT" && (
+          <Link href="/premium" className="rounded-full border border-amber-300 px-2 py-0.5 text-xs font-medium text-amber-800 hover:bg-amber-50">
+            Upgrade
+          </Link>
+        )
       )}
       {/* A plain form posting to a Server Action: sign-out works even before JavaScript loads. */}
       <form action={signOut}>

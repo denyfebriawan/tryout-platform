@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { TryoutBadges } from "@/components/tryout-badges";
+import { canAccessTryout } from "@/lib/access";
 import { formatDuration } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
@@ -57,6 +58,7 @@ async function TryoutList() {
         const questionCount = tryout.subtests.reduce((sum, subtest) => sum + subtest._count.questions, 0);
         const totalSeconds = tryout.subtests.reduce((sum, subtest) => sum + subtest.durationSeconds, 0);
         const status = statusByTryout.get(tryout.id);
+        const locked = user !== null && !status && !canAccessTryout(user, tryout);
         return (
           <li key={tryout.id}>
             <Link
@@ -74,6 +76,7 @@ async function TryoutList() {
               {status && (
                 <p className={`text-sm font-medium ${STATUS_LABEL[status].className}`}>{STATUS_LABEL[status].text}</p>
               )}
+              {locked && <p className="text-sm font-medium text-amber-700">Terkunci · upgrade ke Premium</p>}
             </Link>
           </li>
         );

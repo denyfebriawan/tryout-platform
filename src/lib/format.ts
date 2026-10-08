@@ -35,3 +35,10 @@ const dateTimeFormat = new Intl.DateTimeFormat("id-ID", {
 export function formatDateTime(date: Date): string {
   return `${dateTimeFormat.format(date)} WIB`;
 }
+
+const rupiahFormat = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 });
+
+// 49000 -> "Rp 49.000"
+export function formatRupiah(amount: number): string {
+  return rupiahFormat.format(amount);
+}

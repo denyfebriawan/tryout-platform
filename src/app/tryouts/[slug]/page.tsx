@@ -5,6 +5,8 @@ import { Suspense } from "react";
 
 import { SubmitButton } from "@/components/submit-button";
 import { TryoutBadges } from "@/components/tryout-badges";
+import type { AccessTier } from "@/generated/prisma/client";
+import { canAccessTryout } from "@/lib/access";
 import { startAttempt } from "@/lib/attempt-actions";
 import { formatDuration } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -97,13 +99,13 @@ async function TryoutDetail({ params }: { params: Promise<{ slug: string }> }) {
         </ul>
       </section>
 
-      <StartPanel tryoutId={tryout.id} />
+      <StartPanel tryoutId={tryout.id} accessTier={tryout.accessTier} />
     </div>
   );
 }
 
-// The only part that depends on who is looking: sign-in prompt, start, resume, or done.
-async function StartPanel({ tryoutId }: { tryoutId: string }) {
+// The only part that depends on who is looking: sign-in prompt, start, resume, done, or locked.
+async function StartPanel({ tryoutId, accessTier }: { tryoutId: string; accessTier: AccessTier }) {
   const user = await getCurrentUser();
   if (!user) {
     return (
@@ -126,6 +128,23 @@ async function StartPanel({ tryoutId }: { tryoutId: string }) {
       >
         {attempt.status === "IN_PROGRESS" ? "Lanjutkan tryout" : "Lihat hasil dan pembahasan"}
       </Link>
+    );
+  }
+
+  // This only decides what to show. startAttempt runs the same check on the server.
+  if (!canAccessTryout(user, { accessTier })) {
+    return (
+      <section className="flex flex-col items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-5">
+        <div>
+          <h2 className="font-medium text-amber-900">Tryout ini khusus Premium</h2>
+          <p className="text-sm text-amber-800">
+            Akun gratis bisa mengerjakan tryout gratis. Upgrade ke Premium untuk membuka semua tryout.
+          </p>
+        </div>
+        <Link href="/premium" className="rounded-md bg-amber-500 px-5 py-2.5 font-medium text-white hover:bg-amber-600">
+          Upgrade ke Premium
+        </Link>
+      </section>
     );
   }
 

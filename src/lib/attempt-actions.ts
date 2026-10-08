@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 
 import { Prisma } from "@/generated/prisma/client";
+import { canAccessTryout } from "@/lib/access";
 import { acceptsAnswers } from "@/lib/attempt-timeline";
 import { findAttemptForUser, persistTimeline, type SavedAnswer, timelineOf } from "@/lib/attempts";
 import { prisma } from "@/lib/prisma";
@@ -18,10 +19,17 @@ export async function startAttempt(formData: FormData) {
 
   const tryout = await prisma.tryout.findFirst({
     where: { id: tryoutId, isPublished: true },
-    select: { id: true, subtests: { orderBy: { order: "asc" }, select: { id: true, durationSeconds: true } } },
+    select: {
+      id: true,
+      accessTier: true,
+      subtests: { orderBy: { order: "asc" }, select: { id: true, durationSeconds: true } },
+    },
   });
   if (!tryout || tryout.subtests.length === 0) notFound();
-  // TODO(milestone 6): block premium tryouts for free users here.
+  // The real premium check. The tryout page hides the start button from free users, but anyone can
+  // post this form by hand, so the server decides. isPremium comes fresh from the database (no
+  // session cookie cache), so a payment that just upgraded the user counts right away.
+  if (!canAccessTryout(user, tryout)) redirect("/premium");
 
   const existing = await prisma.attempt.findUnique({
     where: { userId_tryoutId: { userId: user.id, tryoutId: tryout.id } },

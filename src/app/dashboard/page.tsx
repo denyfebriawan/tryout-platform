@@ -33,7 +33,12 @@ async function DashboardContent() {
         {user.isPremium ? (
           <p className="text-zinc-600">Premium: semua tryout terbuka.</p>
         ) : (
-          <p className="text-zinc-600">Gratis: 1 tryout. Upgrade ke Premium untuk membuka semua tryout.</p>
+          <div className="flex flex-col items-start gap-2">
+            <p className="text-zinc-600">Gratis: tryout gratis saja. Upgrade ke Premium untuk membuka semua tryout.</p>
+            <Link href="/premium" className="text-sm font-medium text-amber-700 hover:underline">
+              Upgrade ke Premium
+            </Link>
+          </div>
         )}
       </section>
 
