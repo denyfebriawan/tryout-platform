@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { PayButton } from "@/components/pay-button";
 import { formatRupiah } from "@/lib/format";
+import { getSnapClientConfig, isMidtransConfigured } from "@/lib/midtrans";
 import { premiumPlan } from "@/lib/premium-plan";
 import { getCurrentUser } from "@/lib/session";
 
@@ -60,13 +62,10 @@ async function UpgradeAction() {
     );
   }
 
-  // TODO(milestone 7): replace with the Midtrans Snap checkout.
-  return (
-    <div className="flex flex-col items-start gap-2">
-      <button type="button" disabled className="rounded-md bg-amber-500 px-5 py-2.5 font-medium text-white opacity-60">
-        Bayar sekarang
-      </button>
-      <p className="text-xs text-zinc-500">Pembayaran (mode sandbox Midtrans) segera tersedia.</p>
-    </div>
-  );
+  if (!isMidtransConfigured()) {
+    return <p className="text-sm text-zinc-500">Pembayaran belum dikonfigurasi di server ini.</p>;
+  }
+
+  const { scriptUrl, clientKey } = getSnapClientConfig();
+  return <PayButton scriptUrl={scriptUrl} clientKey={clientKey} />;
 }

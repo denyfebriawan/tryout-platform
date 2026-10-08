@@ -1,4 +1,4 @@
-// The premium plan shown on /premium. The payment step (milestone 7) charges `priceIdr`.
+// The premium plan shown on /premium. startPremiumCheckout() charges `priceIdr` through Midtrans.
 // One-time payment for the demo: the real model (subscription, per-package) is an open question for the client.
 export const premiumPlan = {
   name: "Premium",
