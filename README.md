@@ -2,7 +2,7 @@
 
 An online tryout platform for Indonesia's university entrance test (UTBK-SNBT) and the national academic test (TKA). Participants take timed practice exams that run like the real thing, get scored on the server, and compare results on a leaderboard. Free accounts get one tryout; a sandbox Midtrans payment upgrades an account to premium and unlocks the rest. Admins create tryouts, subtests and questions from a dashboard.
 
-**Live demo:** _coming soon_
+**Live demo:** <https://tryout-platform-zeta.vercel.app>
 
 ## Demo accounts
 
