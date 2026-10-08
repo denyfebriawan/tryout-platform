@@ -1,5 +1,6 @@
-// Seeds tryout content. Run with `npx prisma db seed`.
+// Seeds demo users and tryout content. Run with `npm run db:seed`.
 // It deletes all tryouts and attempts first, so it's for development and demo setup only.
+// Users are upserted, never deleted.
 import { PrismaPg } from "@prisma/adapter-pg";
 import { config } from "dotenv";
 
@@ -7,6 +8,7 @@ import { PrismaClient } from "../../src/generated/prisma/client";
 import type { OptionLabel, SeedSubtest, SeedTryout } from "./structure";
 import { tka1 } from "./tka-1";
 import { utbk1 } from "./utbk-1";
+import { seedDemoUsers } from "./users";
 import { utbk2 } from "./utbk-2";
 
 // Can't import src/lib/prisma.ts here: it's marked server-only and throws outside Next.js.
@@ -61,6 +63,8 @@ async function createTryout(tryout: SeedTryout) {
 }
 
 async function main() {
+  await seedDemoUsers(prisma);
+
   // Attempts block tryout deletion (onDelete: Restrict), so remove them first.
   // Deleting tryouts cascades to subtests, questions and options.
   await prisma.$transaction([prisma.attempt.deleteMany(), prisma.tryout.deleteMany()]);
