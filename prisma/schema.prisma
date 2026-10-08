@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +5,236 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  PARTICIPANT
+}
+
+enum ExamType {
+  UTBK
+  TKA
+}
+
+enum AccessTier {
+  FREE
+  PREMIUM
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+}
+
+// ─── Auth (Better Auth) ─────────────────────────────────────────────────────
+// Field names and types follow Better Auth's core schema. Better Auth generates the ids itself,
+// so these models have no @default on id. `role` and `isPremium` are our additions.
+
+model User {
+  id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  role          Role     @default(PARTICIPANT)
+  isPremium     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions Session[]
+  accounts Account[]
+  attempts Attempt[]
+  payments Payment[]
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+// ─── Content: tryout → subtest → question → option ──────────────────────────
+
+model Tryout {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  title       String
+  description String?
+  examType    ExamType
+  accessTier  AccessTier @default(PREMIUM)
+  isPublished Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  subtests Subtest[]
+  attempts Attempt[]
+}
+
+// One timed section of a tryout. Subtests run in `order`, each with its own countdown.
+model Subtest {
+  id              String @id @default(cuid())
+  tryoutId        String
+  tryout          Tryout @relation(fields: [tryoutId], references: [id], onDelete: Cascade)
+  order           Int
+  code            String // short label, e.g. "PU", "LBE"
+  name            String
+  durationSeconds Int
+
+  questions       Question[]
+  attemptSections AttemptSection[]
+
+  @@unique([tryoutId, order])
+}
+
+model Question {
+  id          String  @id @default(cuid())
+  subtestId   String
+  subtest     Subtest @relation(fields: [subtestId], references: [id], onDelete: Cascade)
+  order       Int
+  stimulus    String? // optional reading passage or table shown above the question
+  stem        String
+  explanation String? // answer key reasoning, only shown after the attempt is submitted
+  weight      Int     @default(1)
+
+  options QuestionOption[]
+  answers AttemptAnswer[]
+
+  @@unique([subtestId, order])
+}
+
+// isCorrect is the answer key. Never select it while an attempt is in progress.
+model QuestionOption {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  label      String // "A" to "E"
+  text       String
+  isCorrect  Boolean  @default(false)
+
+  answers AttemptAnswer[]
+
+  @@unique([questionId, label])
+}
+
+// ─── Attempts: the server-owned timer and autosaved answers ─────────────────
+
+// One attempt per user per tryout, which keeps the leaderboard and free-tier quota simple.
+model Attempt {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tryoutId      String
+  tryout        Tryout        @relation(fields: [tryoutId], references: [id], onDelete: Restrict)
+  status        AttemptStatus @default(IN_PROGRESS)
+  startedAt     DateTime      @default(now())
+  submittedAt   DateTime?
+  autoSubmitted Boolean       @default(false)
+  score         Float?
+
+  sections AttemptSection[]
+  answers  AttemptAnswer[]
+
+  @@unique([userId, tryoutId])
+  @@index([tryoutId, status, score])
+}
+
+// The timer per subtest. startedAt/deadline are set by the server when the section opens;
+// the client only renders a countdown to `deadline`.
+model AttemptSection {
+  id          String    @id @default(cuid())
+  attemptId   String
+  attempt     Attempt   @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  subtestId   String
+  subtest     Subtest   @relation(fields: [subtestId], references: [id], onDelete: Restrict)
+  startedAt   DateTime?
+  deadline    DateTime?
+  submittedAt DateTime?
+  score       Float?
+
+  @@unique([attemptId, subtestId])
+}
+
+// Upserted on every change (autosave). isCorrect stays null until the attempt is scored.
+model AttemptAnswer {
+  id               String          @id @default(cuid())
+  attemptId        String
+  attempt          Attempt         @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId       String
+  question         Question        @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  selectedOptionId String?
+  selectedOption   QuestionOption? @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+  isFlagged        Boolean         @default(false)
+  isCorrect        Boolean?
+  updatedAt        DateTime        @updatedAt
+
+  @@unique([attemptId, questionId])
+}
+
+// ─── Payments (Midtrans sandbox) ────────────────────────────────────────────
+
+// orderId is what we send to Midtrans; it's unique so a repeated webhook can't grant premium twice.
+model Payment {
+  id                    String        @id @default(cuid())
+  userId                String
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId               String        @unique
+  amount                Int // in rupiah
+  status                PaymentStatus @default(PENDING)
+  snapToken             String?
+  midtransTransactionId String?
+  paymentType           String?
+  rawNotification       Json?
+  paidAt                DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([userId])
 }
