@@ -11,9 +11,14 @@ export function SiteHeader() {
   return (
     <header className="border-b border-zinc-200 bg-white">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-        <Link href="/" className="text-lg font-bold text-indigo-600">
-          {siteConfig.name}
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/" className="text-lg font-bold text-indigo-600">
+            {siteConfig.name}
+          </Link>
+          <Link href="/tryouts" className="text-sm text-zinc-700 hover:text-indigo-600">
+            Tryout
+          </Link>
+        </div>
         <Suspense fallback={<div className="h-8 w-32 animate-pulse rounded bg-zinc-100" />}>
           <UserNav />
         </Suspense>

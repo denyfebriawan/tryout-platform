@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 
 import { requireUser } from "@/lib/session";
@@ -38,7 +39,10 @@ async function DashboardContent() {
 
       <section className="rounded-xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-1 font-medium">Riwayat tryout</h2>
-        <p className="text-zinc-500">Belum ada tryout yang kamu kerjakan.</p>
+        <p className="mb-3 text-zinc-500">Belum ada tryout yang kamu kerjakan.</p>
+        <Link href="/tryouts" className="text-sm font-medium text-indigo-600 hover:underline">
+          Lihat daftar tryout
+        </Link>
       </section>
     </div>
   );
