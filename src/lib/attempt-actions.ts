@@ -108,12 +108,24 @@ export async function saveAnswer(input: SaveAnswerInput): Promise<SaveAnswerResu
     return { ok: false, error: "closed" };
   }
 
-  // Unique on (attemptId, questionId), so saving the same question again updates the row.
-  await prisma.attemptAnswer.upsert({
-    where: { attemptId_questionId: { attemptId, questionId } },
-    create: { attemptId, questionId, selectedOptionId, isFlagged },
-    update: { selectedOptionId, isFlagged },
+  const saved = await prisma.$transaction(async (tx) => {
+    // Re-check the status with a shared lock on the attempt row. Scoring (submitAndScore) needs that
+    // row exclusively, so the two can't overlap: either this save commits first and gets scored, or
+    // scoring commits first and this check sees SUBMITTED. Without it, another tab could finish the
+    // attempt between the check above and the upsert below, and the answer would miss the score.
+    const open = await tx.$queryRaw<{ id: string }[]>`
+      SELECT id FROM "Attempt" WHERE id = ${attemptId} AND status = 'IN_PROGRESS' FOR SHARE`;
+    if (open.length === 0) return false;
+
+    // Unique on (attemptId, questionId), so saving the same question again updates the row.
+    await tx.attemptAnswer.upsert({
+      where: { attemptId_questionId: { attemptId, questionId } },
+      create: { attemptId, questionId, selectedOptionId, isFlagged },
+      update: { selectedOptionId, isFlagged },
+    });
+    return true;
   });
+  if (!saved) return { ok: false, error: "closed" };
   await persistTimeline(attempt, timeline);
   return { ok: true };
 }

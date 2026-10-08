@@ -18,6 +18,13 @@ export function formatClock(totalSeconds: number): string {
   return hours > 0 ? `${hours}:${mmss}` : mmss;
 }
 
+// Scores use Indonesian number format with at most one decimal: 742.86 -> "742,9", 600 -> "600".
+const scoreFormat = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });
+
+export function formatScore(score: number): string {
+  return scoreFormat.format(score);
+}
+
 // Fixed to WIB: the server may run in UTC (e.g. on Vercel), and participants are in Indonesia.
 const dateTimeFormat = new Intl.DateTimeFormat("id-ID", {
   dateStyle: "medium",

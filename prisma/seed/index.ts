@@ -1,4 +1,4 @@
-// Seeds demo users and tryout content. Run with `npm run db:seed`.
+// Seeds demo users, tryout content, and sample finished attempts for the leaderboard. Run with `npm run db:seed`.
 // It deletes all tryouts and attempts first, so it's for development and demo setup only.
 // Users are upserted, never deleted.
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -6,6 +6,7 @@ import { config } from "dotenv";
 
 import { PrismaClient } from "../../src/generated/prisma/client";
 import type { OptionLabel, SeedSubtest, SeedTryout } from "./structure";
+import { seedSampleAttempts } from "./sample-attempts";
 import { tka1 } from "./tka-1";
 import { utbk1 } from "./utbk-1";
 import { seedDemoUsers } from "./users";
@@ -58,7 +59,13 @@ async function createTryout(tryout: SeedTryout) {
         })),
       },
     },
-    include: { subtests: { include: { _count: { select: { questions: true } } } } },
+    // Subtests in order with their questions and answer keys: the sample attempts need them.
+    include: {
+      subtests: {
+        orderBy: { order: "asc" },
+        include: { questions: { select: { id: true, weight: true, options: { select: { id: true, isCorrect: true } } } } },
+      },
+    },
   });
 }
 
@@ -69,15 +76,19 @@ async function main() {
   // Deleting tryouts cascades to subtests, questions and options.
   await prisma.$transaction([prisma.attempt.deleteMany(), prisma.tryout.deleteMany()]);
 
+  const tryouts = [];
   for (const tryout of [utbk1, utbk2, tka1]) {
     const created = await createTryout(tryout);
-    const questionCount = created.subtests.reduce((sum, s) => sum + s._count.questions, 0);
+    tryouts.push(created);
+    const questionCount = created.subtests.reduce((sum, s) => sum + s.questions.length, 0);
     const totalMinutes = created.subtests.reduce((sum, s) => sum + s.durationSeconds, 0) / 60;
     console.log(
       `${created.title} [${created.accessTier}]: ${created.subtests.length} subtests, ` +
         `${questionCount} questions, ${totalMinutes.toFixed(1)} min`,
     );
   }
+
+  await seedSampleAttempts(prisma, tryouts);
 }
 
 main()

@@ -50,6 +50,9 @@ async function TryoutDetail({ params }: { params: Promise<{ slug: string }> }) {
         <TryoutBadges examType={tryout.examType} accessTier={tryout.accessTier} />
         <h1 className="text-2xl font-semibold">{tryout.title}</h1>
         {tryout.description && <p className="text-zinc-600">{tryout.description}</p>}
+        <Link href={`/tryouts/${slug}/leaderboard`} className="self-start text-sm font-medium text-indigo-600 hover:underline">
+          Lihat leaderboard
+        </Link>
       </div>
 
       <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
@@ -121,7 +124,7 @@ async function StartPanel({ tryoutId }: { tryoutId: string }) {
         href={`/attempts/${attempt.id}`}
         className="self-start rounded-md bg-indigo-600 px-5 py-2.5 font-medium text-white hover:bg-indigo-700"
       >
-        {attempt.status === "IN_PROGRESS" ? "Lanjutkan tryout" : "Lihat ringkasan"}
+        {attempt.status === "IN_PROGRESS" ? "Lanjutkan tryout" : "Lihat hasil dan pembahasan"}
       </Link>
     );
   }
