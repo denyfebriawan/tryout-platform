@@ -17,8 +17,10 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
+    "db:deploy:neon": "tsx scripts/neon-db.ts deploy",
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
+    "db:seed:neon": "tsx scripts/neon-db.ts seed",
     "payment:notify": "tsx scripts/simulate-midtrans-notification.ts"
   },
   "dependencies": {

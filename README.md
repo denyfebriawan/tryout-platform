@@ -66,6 +66,7 @@ npm run dev                      # http://localhost:3000
 | `npm run db:migrate` | Create and apply a migration (development) |
 | `npm run db:deploy` | Apply existing migrations (production) |
 | `npm run db:seed` | Wipe and reseed demo content |
+| `npm run db:deploy:neon` / `npm run db:seed:neon` | The same against Neon (`NEON_DATABASE_URL` in `.env.local`), after a confirmation |
 | `npm run db:studio` | Browse the database |
 | `npm run payment:notify -- <order_id> [status]` | Send a signed Midtrans webhook to the local server |
 
@@ -87,18 +88,14 @@ The order id (`PREMIUM-...`) is shown on the payment status page and on the dash
 ## Deploying (Vercel + Neon)
 
 1. **Database.** Create a Neon project, ideally in Singapore (`aws-ap-southeast-1`) next to the Vercel functions (`vercel.json` pins them to `sin1`). Copy two connection strings: the **pooled** one (host contains `-pooler`) for the app, and the **direct** one for migrations.
-2. **Migrate and seed once**, from your machine, against the direct connection string. An environment variable set in the shell takes precedence over `.env.local`:
+2. **Migrate and seed once**, from your machine. Add the direct connection string to `.env.local` as `NEON_DATABASE_URL` (not `DATABASE_URL`, which stays local), then:
 
    ```bash
-   # bash
-   DATABASE_URL="<neon direct url>" npm run db:deploy
-   DATABASE_URL="<neon direct url>" npm run db:seed
+   npm run db:deploy:neon     # apply migrations to Neon
+   npm run db:seed:neon       # seed the live demo
    ```
 
-   ```powershell
-   # PowerShell
-   $env:DATABASE_URL = "<neon direct url>"; npm run db:deploy; npm run db:seed; Remove-Item Env:DATABASE_URL
-   ```
+   Both show the target host and ask for confirmation (`-- --yes` skips it). They pass the Neon URL to that one command only, so local development keeps using the local database. Use `db:deploy:neon` again whenever a new migration is added.
 
    Don't re-run the seed on a live demo casually: it wipes all tryouts and attempts. The exception is resetting the demo on purpose: the demo logins are public, so anyone can edit content as the admin or change a demo password. Run the same seed command before showing the demo to bring it back to a clean state.
 3. **Vercel.** Import the repository and add the environment variables from `.env.example`: `DATABASE_URL` (pooled), `BETTER_AUTH_SECRET` (a new random value), `BETTER_AUTH_URL` (the production URL, e.g. `https://your-app.vercel.app`), and the Midtrans sandbox keys. The Prisma client is generated during `npm install` by the `postinstall` script.
